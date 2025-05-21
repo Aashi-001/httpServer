@@ -29,7 +29,7 @@ int main(){
         return 0;
     }
 
-    socklen_t *addrlen;
+    // socklen_t *addrlen;
     struct sockaddr *addr;
 
     if(listen(socketid, 20) == -1){
@@ -37,12 +37,12 @@ int main(){
         return 0;
     }
 
-    printf("listening on port %d", ntohs(my_addr.sin_port));
+    printf("listening on port %d\n", ntohs(my_addr.sin_port));
     
     struct sockaddr_storage their_addr;
     socklen_t addr_size = sizeof(their_addr);
 
-    int fd = accept(socketid, (struct sockaddr*)&their_addr, &addrlen);
+    int fd = accept(socketid, (struct sockaddr*)&their_addr, &addr_size);
     if(fd == -1){
         perror("could not accept");
         return 0;
@@ -52,7 +52,13 @@ int main(){
     read(fd, buffer, sizeof(buffer));
     printf("Received: %s\n", buffer);
 
-    char *msg = "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello world";
+    // char *msg = "HTTP/1.1 200 OK\r\nContent-Length: 12\r\n\r\nHello world";
+    const char *msg =
+        "HTTP/1.0 200 OK\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 47\r\n"
+        "\r\n"
+        "<html><body><h1>Hello, World!</h1></body></html>";
     write(fd, msg, strlen(msg));
 
     close(fd);
