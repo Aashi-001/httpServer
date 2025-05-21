@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <pthread.h>
+#include <stdlib.h>
 
 // struct sockaddr_in my_addr;
 
@@ -80,6 +82,20 @@ void handle_request(int fd, char *request) {
     serve_file(fd, path);
 }
 
+void *thread_handler(void *arg) {
+    int fd = *(int *)arg;
+    free(arg);
+
+    char buffer[1024] = {0};
+    read(fd, buffer, sizeof(buffer) - 1);
+    printf("Received:\n%s\n", buffer);
+
+    handle_request(fd, buffer);
+    close(fd);
+
+    return NULL;
+}
+
 
 int main(){
     printf("hello world\n");
@@ -117,13 +133,13 @@ int main(){
     socklen_t addr_size = sizeof(their_addr);
 
     while (1) {
-        int fd = accept(socketid, (struct sockaddr*)&their_addr, &addr_size);
-        if(fd == -1){
-            perror("could not accept");
-            return 0;
-        }
+        // int fd = accept(socketid, (struct sockaddr*)&their_addr, &addr_size);
+        // if(fd == -1){
+        //     perror("could not accept");
+        //     return 0;
+        // }
 
-        char buffer[1024] = {0};
+        // char buffer[1024] = {0};
         // read(fd, buffer, sizeof(buffer));
         // printf("Received: %s\n", buffer);
 
@@ -139,10 +155,26 @@ int main(){
         // close(fd);
         // close(socketid);
 
-        read(fd, buffer, sizeof(buffer) - 1);
-        printf("Received:\n%s\n", buffer);
-        handle_request(fd, buffer);
-        close(fd);
+        // read(fd, buffer, sizeof(buffer) - 1);
+        // printf("Received:\n%s\n", buffer);
+        // handle_request(fd, buffer);
+        // close(fd);
+        int *fd = malloc(sizeof(int));
+        *fd = accept(socketid, (struct sockaddr*)&their_addr, &addr_size);
+        if (*fd == -1) {
+            perror("accept failed");
+            free(fd);
+            continue;
+        }
+
+        pthread_t tid;
+        if (pthread_create(&tid, NULL, thread_handler, fd) != 0) {
+            perror("pthread_create failed");
+            close(*fd);
+            free(fd);
+        } else {
+            pthread_detach(tid);
+        }
     }
 
 }
